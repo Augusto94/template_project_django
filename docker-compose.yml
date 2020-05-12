@@ -1,0 +1,102 @@
+version: "3"
+
+services:
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   restart: on-failure
+  #   container_name: rabbitMQ
+  #   env_file:
+  #     - ./docker/environ/local.env
+  #   expose:
+  #       - 5672
+  #       - 15672
+
+  # database:
+  #   image: postgres:9.5
+  #   restart: on-failure
+  #   container_name: database_web
+  #   env_file:
+  #     - ./docker/environ/local.env
+  #   volumes:
+  #     - db_dev:/var/lib/postgresql/data
+  #   expose:
+  #     - 5432
+
+  # pgadmin:
+  #   image: thajeztah/pgadmin4
+  #   container_name: pgadmin_web
+  #   links:
+  #     - database
+  #   ports:
+  #     - 5050:5050
+
+  webserver:
+    image: todoapp
+    build:
+      context: .
+      dockerfile: .
+    container_name: todoApp
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    command:
+      sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - webserver_staticfiles:/app/todoApp/staticfiles
+      - webserver_media:/app/todoApp/media
+      - .:/app
+
+  # worker:
+  #   image: todoapp_dev
+  #   restart: on-failure
+  #   container_name: worker
+  #   depends_on:
+  #     - webserver
+  #   env_file:
+  #     - ./docker/environ/local.env
+  #   volumes:
+  #     - webserver_staticfiles:/app/todoapp/staticfiles
+  #     - webserver_media:/app/todoapp/media
+  #     - .:/app
+  #   links:
+  #     - database
+  #     - rabbitmq
+  #   command: celery -A todoapp worker -l INFO -n worker
+
+  # flower:
+  #   restart: always
+  #   image: todoapp_dev
+  #   container_name: flower
+  #   environment:
+  #     DOCKER_TLS_VERIFY: 'false'
+  #   env_file:
+  #     - ./docker/environ/local.env
+  #   command: celery flower --port=5757 -A todoapp --broker=amqp://intelivix:intelivix@rabbitmq:5672/intelivix
+  #   expose:
+  #     - "5757"
+  #   ports:
+  #     - "5757:5757"
+  #   links:
+  #     - rabbitmq
+
+  # scheduler:
+  #   image: todoapp_dev
+  #   restart: on-failure
+  #   container_name: scheduler
+  #   depends_on:
+  #       - webserver
+  #   env_file:
+  #       - ./docker/environ/local.env
+  #   volumes:
+  #     - webserver_staticfiles:/app/todoapp/staticfiles
+  #     - webserver_media:/app/todoapp/media
+  #     - .:/app
+  #   links:
+  #     - database
+  #     - rabbitmq
+  #   command: celery -A todoapp beat -l info --pidfile= --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+volumes:
+  db_dev:
+  webserver_staticfiles:
+  webserver_media:
